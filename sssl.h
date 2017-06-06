@@ -1,4 +1,6 @@
 #pragma once
+#ifndef SSSL_H
+#define SSSL_H
 
 #include "ssock.h"
 #include "ringbuf.h"
@@ -13,3 +15,6 @@ int          sssl_connect(struct sssl *self);
 int          sssl_poll(struct sssl *self, char *buf, int sz);
 int          sssl_send(struct sssl *self, char *buf, int sz);
 void         sssl_set_connected(struct sssl *self, int v);
+
+
+#endif // !SSSL_H

@@ -33,6 +33,7 @@ sssl_write_ssock(struct sssl *self) {
 		e += nwrite;
 	}
 	printf("向socket发送数据 %d bytes\r\n", w);
+	return 1;
 }
 
 static int
@@ -54,6 +55,7 @@ sssl_read_data(struct sssl *self) {
 	}
 	
 	printf("接受socket数据 %d bytes\r\n", r);
+	return 1;
 }
 
 static int 
@@ -163,6 +165,7 @@ sssl_send(struct sssl *self, char *buf, int sz) {
 		sssl_handle_err(self, ret);
 		printf("send data failture.\r\n");
 	}
+	return 1;
 }
 
 void         

@@ -1,24 +1,9 @@
 #pragma once
+#ifndef SSOCK_H
+#define SSOCK_H
+
 #include "sssl.h"
-#if WIN32
-#include <Winsock2.h>
-#include <Wininet.h>
-#include <ws2tcpip.h>
-#include <Windows.h>
-#pragma comment (lib, "Ws2_32.lib")
-#else
-#include <sys/stat.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/timeb.h>
-#include <netdb.h>
-#include <sys/select.h>
-#endif
+#include "lssock.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +11,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <assert.h>
+
 
 
 typedef void(*recv_cb)(void *data, int dlen, void *ud);
@@ -57,3 +43,6 @@ int            ssock_data(struct ssock *self, char *buf, int size);
 
 int            ssock_shutdown(struct ssock *self, int how);
 int            ssock_close(struct ssock *self);
+
+#endif // !SSOCK_H
+
