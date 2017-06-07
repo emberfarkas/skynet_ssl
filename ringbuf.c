@@ -18,7 +18,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys\types.h>
 #include <assert.h>
 #if defined(_MSC_VER)
 #include <math.h>
