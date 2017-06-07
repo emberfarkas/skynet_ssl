@@ -154,7 +154,6 @@ luaopen_ssock(lua_State *L) {
 	luaL_checkversion(L);
 	lua_createtable(L, 0, 1);
 	luaL_Reg l[] = {
-		{ "free", lssockaux_free },
 		{ "connected", lssockaux_connected },
 		{ "connect", lssockaux_connect },
 		{ "update", lssockaux_update },
@@ -166,6 +165,8 @@ luaopen_ssock(lua_State *L) {
 	};
 	luaL_newlib(L, l); // met
 	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, lssockaux_free);
+	lua_setfield(L, -2, "__gc");
 
 	lua_pushcclosure(L, lssockaux_alloc, 1);
 	return 1;
