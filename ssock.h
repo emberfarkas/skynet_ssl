@@ -38,8 +38,8 @@ int            ssock_update(struct ssock *self);
 int            ssock_poll(struct ssock *self, char *buf, int size);
 int            ssock_send(struct ssock *self, char *buf, int size);
 
-int            ssock_write(struct ssock *self, char *buf, int size);
-int            ssock_data(struct ssock *self, char *buf, int size);
+int            ssock_write(struct ssock *self, const char *buf, int size);
+int            ssock_data(struct ssock *self, const char *buf, int size);
 
 int            ssock_shutdown(struct ssock *self, int how);
 int            ssock_close(struct ssock *self);

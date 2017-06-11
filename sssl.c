@@ -32,8 +32,7 @@ sssl_write_ssock(struct sssl *self) {
 		w += nwrite;
 		e += nwrite;
 	}
-	printf("向socket发送数据 %d bytes\r\n", w);
-	return 1;
+	return nread;
 }
 
 static int
@@ -134,7 +133,7 @@ sssl_connect(struct sssl *self) {
 }
 
 int
-sssl_poll(struct sssl *self, char *buf, int sz) {
+sssl_poll(struct sssl *self, const char *buf, int sz) {
 	BIO_write(self->recv_bio, buf, sz);
 
 	if (!SSL_is_init_finished(self->ssl)) {
@@ -158,14 +157,21 @@ sssl_poll(struct sssl *self, char *buf, int sz) {
 int
 sssl_send(struct sssl *self, char *buf, int sz) {
 	assert(self->connected == 1);
+	if (sz <= 0) {
+		return 0;
+	}
+	assert(buf != NULL && sz > 0);
 	int ret = SSL_write(self->ssl, buf, sz);
+	while (ret < sz) {
+		sz -= ret;
+		ret = SSL_write(self->ssl, buf + ret, sz);
+	}
 	if (ret > 0) {
 		sssl_write_ssock(self);
 	} else {
 		sssl_handle_err(self, ret);
-		printf("send data failture.\r\n");
 	}
-	return 1;
+	return ret;
 }
 
 void         

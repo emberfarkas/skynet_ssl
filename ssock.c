@@ -119,13 +119,13 @@ ssock_send(struct ssock *self, char *buf, int size) {
 }
 
 int
-ssock_write(struct ssock *self, char *buf, int size) {
+ssock_write(struct ssock *self, const char *buf, int size) {
 	return ssockaux_write(self->ud, buf, size);
 	//return send(self->fd, buf, size, 0);
 }
 
 int
-ssock_data(struct ssock *self, char *buf, int size) {
+ssock_data(struct ssock *self, const char *buf, int size) {
 	if (self->cb != NULL) {
 		self->cb(buf, size, self->ud);
 	}
