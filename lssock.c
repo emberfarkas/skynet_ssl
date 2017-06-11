@@ -88,8 +88,9 @@ lssockaux_alloc(lua_State *L) {
 	aux->L = L;
 	aux->fd = ssock_alloc(onrecv, aux);
 
-	if (lua_gettop(L) > 1) {
+	if (lua_gettop(L) >= 1) {
 		luaL_checktype(L, 1, LUA_TTABLE);
+		lua_pushvalue(L, 1);
 		lua_setglobal(L, gkey);
 	}
 	lua_pushvalue(L, lua_upvalueindex(1));
@@ -138,9 +139,8 @@ lssockaux_poll(lua_State *L) {
 	if (lua_gettop(L) > 2) {
 		luaL_checktype(L, 3, LUA_TFUNCTION);
 		lua_getglobal(L, gkey);
-		if (lua_istable(L, -1)) {
-		} else {
-			lua_newtable(L);
+		if (!lua_istable(L, -1)) {
+			lua_createtable(L, 0, 4);
 			lua_setglobal(L, gkey);
 		}
 		lua_pushvalue(L, 3);

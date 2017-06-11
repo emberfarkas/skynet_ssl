@@ -142,6 +142,7 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 		sssl_write_ssock(self);
 		if (ret != 1) {
 			sssl_handle_err(self, ret);
+			return ret;
 		} else {
 			printf("openssl handshake success.\r\n");
 			sssl_set_connected(self, 1);
