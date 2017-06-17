@@ -1,4 +1,5 @@
 #include "sssl.h"
+#include "ssock.h"
 
 struct sssl {
 	SSL_CTX   *ssl_ctx;
@@ -156,7 +157,7 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 }
 
 int
-sssl_send(struct sssl *self, char *buf, int sz) {
+sssl_send(struct sssl *self, const char *buf, int sz) {
 	assert(self->connected == 1);
 	if (sz <= 0) {
 		return 0;

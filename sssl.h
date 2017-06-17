@@ -2,12 +2,12 @@
 #ifndef SSSL_H
 #define SSSL_H
 
-#include "ssock.h"
 #include "ringbuf.h"
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+struct ssock;
 struct sssl;
 struct sssl *sssl_alloc(struct ssock *fd);
 void         sssl_free(struct sssl *self);

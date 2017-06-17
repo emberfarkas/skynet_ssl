@@ -118,6 +118,7 @@ lssockaux_connect(lua_State *L) {
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	const char *addr = luaL_checkstring(L, 2);
 	int port = luaL_checkinteger(L, 3);
+	printf("%s:%d\n", addr, port);
 	int r = ssock_connect(aux->fd, addr, port);
 	lua_pushinteger(L, r);
 	return 1;
@@ -146,9 +147,13 @@ lssockaux_poll(lua_State *L) {
 		lua_pushvalue(L, 3);
 		lua_setfield(L, -2, gkey_data);
 	}
-
-	int r = ssock_poll(aux->fd, buf, l);
-	lua_pushinteger(L, r);
+	if (l > 0) {
+		int r = ssock_poll(aux->fd, buf, l);
+		lua_pushinteger(L, r);	
+	} else {
+		lua_pushinteger(L, 0);	
+	}
+	
 	return 1;
 }
 
