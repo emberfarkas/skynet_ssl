@@ -161,7 +161,7 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 	if (SSSL_CONNECT <= self->state && self->state <= SSSL_CONNECTED) {
 		// 判断hanshake是否完成
 		if (!SSL_is_init_finished(self->ssl)) {
-			sssl_set_connected(self, SSSL_CONNECTING);
+			sssl_set_state(self, SSSL_CONNECTING);
 			int ret = SSL_do_handshake(self->ssl);
 			sssl_write_ssock(self);
 			if (ret != 1) {
@@ -169,11 +169,11 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 				return ret;
 			} else {
 				printf("openssl handshake success.\r\n");
-				sssl_set_connected(self, 1);
+				sssl_set_state(self, 1);
 				//sssl_read_bio(self);
 			}
 		} else {
-			sssl_set_connected(self, SSSL_CONNECTED);
+			sssl_set_state(self, SSSL_CONNECTED);
 			sssl_read_data(self);
 		}
 		// 内部判断ssl链接是断开
@@ -217,7 +217,7 @@ sssl_send(struct sssl *self, const char *buf, int sz) {
 }
 
 void
-sssl_set_connected(struct sssl *self, int v) {
+sssl_set_state(struct sssl *self, int v) {
 	if (self->state != v) {
 		self->state = v;
 		ssock_set_ss(self->fd, v);
