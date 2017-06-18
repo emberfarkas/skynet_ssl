@@ -4,6 +4,13 @@
 #include <assert.h>
 #include <string.h>
 
+#define SSSL_NORMAL     0
+#define SSSL_CONNECT    1
+#define SSSL_CONNECTING 2
+#define SSSL_CONNECTED  2
+#define SSSL_SHUTDOWN   3
+#define SSSL_CLOSE      4
+
 struct sssl {
 	SSL_CTX   *ssl_ctx;
 	SSL       *ssl;
@@ -12,7 +19,7 @@ struct sssl {
 	ringbuf_t  send_rb;
 	ringbuf_t  recv_rb;
 	struct ssock *fd;
-	int        connected;  // 1: ok, 0:
+	int        state;
 };
 
 static int
@@ -104,16 +111,17 @@ struct sssl *
 	SSL_set_bio(inst->ssl, inst->recv_bio, inst->send_bio);
 
 	inst->fd = fd;
+	inst->state = SSSL_NORMAL;
 
 	return inst;
 }
 
 void
 sssl_free(struct sssl *self) {
+	assert(self->state == SSSL_CLOSE);
 	BIO_free(self->send_bio);
 	BIO_free(self->recv_bio);
 
-	SSL_shutdown(self->ssl);
 	SSL_free(self->ssl);
 
 	SSL_CTX_free(self->ssl_ctx);
@@ -124,6 +132,7 @@ sssl_free(struct sssl *self) {
 
 int
 sssl_connect(struct sssl *self) {
+	self->state = SSSL_CONNECT;
 	SSL_set_connect_state(self->ssl);
 	int ret = SSL_connect(self->ssl);
 
@@ -141,37 +150,55 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 	if (sz <= 0) {
 		return 0;
 	}
-
 	// 确保buf是正确的
 	assert(buf != NULL && sz > 0);
+
 	int nw = BIO_write(self->recv_bio, buf, sz);
 	while (nw < sz) {
 		nw = BIO_write(self->recv_bio, buf + nw, sz - nw);
 	}
 
-	// 判断hanshake是否完成
-	if (!SSL_is_init_finished(self->ssl)) {
-		sssl_set_connected(self, 0);
-		int ret = SSL_do_handshake(self->ssl);
-		sssl_write_ssock(self);
-		if (ret != 1) {
-			sssl_handle_err(self, ret);
-			return ret;
+	if (SSSL_CONNECT <= self->state && self->state <= SSSL_CONNECTED) {
+		// 判断hanshake是否完成
+		if (!SSL_is_init_finished(self->ssl)) {
+			sssl_set_connected(self, SSSL_CONNECTING);
+			int ret = SSL_do_handshake(self->ssl);
+			sssl_write_ssock(self);
+			if (ret != 1) {
+				sssl_handle_err(self, ret);
+				return ret;
+			} else {
+				printf("openssl handshake success.\r\n");
+				sssl_set_connected(self, 1);
+				//sssl_read_bio(self);
+			}
 		} else {
-			printf("openssl handshake success.\r\n");
-			sssl_set_connected(self, 1);
-			//sssl_read_bio(self);
+			sssl_set_connected(self, SSSL_CONNECTED);
+			sssl_read_data(self);
 		}
-	} else {
-		sssl_set_connected(self, 1);
-		sssl_read_data(self);
+		// 内部判断ssl链接是断开
+	} else if (self->state == SSSL_SHUTDOWN) {
+		int r = SSL_shutdown(self->ssl);
+		sssl_handle_err(self, r);
+		if (r == 1) {
+			// 成功
+			if ((SSL_get_shutdown(self->ssl) &  SSL_SENT_SHUTDOWN)
+				&& (SSL_get_shutdown(self->ssl) &  SSL_RECEIVED_SHUTDOWN)) {
+				ssock_closex(self->fd);
+			} else if (SSL_get_shutdown(self->ssl) &  SSL_SENT_SHUTDOWN) {
+				ssock_shutdownx(self->fd, 1);
+			} else if (SSL_get_shutdown(self->ssl) &  SSL_RECEIVED_SHUTDOWN) {
+				ssock_shutdownx(self->fd, 2);
+			}
+		}
 	}
+
 	return 1;
 }
 
 int
 sssl_send(struct sssl *self, const char *buf, int sz) {
-	assert(self->connected == 1);
+	assert(self->state == SSSL_CONNECTED);
 	if (sz <= 0) {
 		return 0;
 	}
@@ -191,18 +218,42 @@ sssl_send(struct sssl *self, const char *buf, int sz) {
 
 void
 sssl_set_connected(struct sssl *self, int v) {
-	if (self->connected != v) {
-		self->connected = v;
-		ssock_set_connected(self->fd, v);
+	if (self->state != v) {
+		self->state = v;
+		ssock_set_ss(self->fd, v);
 	}
 }
 
-int          
+int
 sssl_shutdown(struct sssl *self, int how) {
-	return ssock_shutdownx(self->fd, how);
+	if (self->state == SSSL_CLOSE) {
+		ssock_closex(self->fd);
+		return 0;
+	}
+	self->state == SSSL_SHUTDOWN;
+	if (how == 1) {
+		SSL_set_shutdown(self->ssl, SSL_SENT_SHUTDOWN);
+	} else if (how == 2) {
+		SSL_set_shutdown(self->ssl, SSL_RECEIVED_SHUTDOWN);
+	} else {
+		SSL_set_shutdown(self->ssl, SSL_SENT_SHUTDOWN);
+		SSL_set_shutdown(self->ssl, SSL_RECEIVED_SHUTDOWN);
+	}
+
+	SSL_shutdown(self->ssl);
+	return 1;
 }
 
-int          
+int
 sssl_close(struct sssl *self) {
-	return ssock_closex(self->fd);
+	if (self->state == SSSL_CLOSE) {
+		ssock_closex(self->fd);
+		return 0;
+	}
+	return sssl_shutdown(self, 0);
+}
+
+int
+sssl_clear(struct sssl *self) {
+	SSL_clear(self->ssl);
 }

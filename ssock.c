@@ -55,13 +55,14 @@ ssock_alloc(struct ssock_cb *cb) {
 	inst->callback = *cb;
 	
 	inst->sssl = sssl_alloc(inst);
-	inst->connected = 0;
+	inst->ss = ss_normal;
 	return inst;
 }
 
 void
 ssock_free(struct ssock *self) {
 	sssl_free(self->sssl);
+	free(self);
 #ifdef TEST_SOCK
 #if defined(_WIN32)
 	WSACleanup();
@@ -133,6 +134,11 @@ ssock_close(struct ssock *self) {
 	// close ssl
 	return sssl_close(self->sssl);
 #endif
+}
+
+int            
+ssock_clear(struct ssock *self) {
+	sssl_clear(self->sssl);
 }
 
 int

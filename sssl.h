@@ -17,6 +17,7 @@ int          sssl_send(struct sssl *self, const char *buf, int sz);
 void         sssl_set_connected(struct sssl *self, int v);
 int          sssl_shutdown(struct sssl *self, int how);
 int          sssl_close(struct sssl *self);
+int          sssl_clear(struct sssl *self);
 
 
 

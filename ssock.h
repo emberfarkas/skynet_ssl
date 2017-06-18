@@ -5,6 +5,15 @@
 #include "sssl.h"
 #include "lssock.h"
 
+typedef enum ssock_state {
+	ss_normal,
+	ss_connect,
+	ss_connecting,
+	ss_connected,
+	ss_shutdown,
+	ss_close,
+} ssock_state;
+
 typedef void (*data_cb)(const char *data, int dlen, void *ud);
 typedef int (*write_cb)(const char *data, int dlen, void *ud);
 typedef int (*shutdown_cb)(int how, void *ud);
@@ -20,14 +29,14 @@ struct ssock_cb {
 
 struct ssock {
 	int fd;
-	int          connected;  // 1: ok, 0:
+	int ss;  // 1: ok, 0:
 	struct sssl *sssl;
 	struct ssock_cb     callback;
 };
 
 #define        ssock_set_sssl(self, v) ((self)->sssl = (v))
-#define        ssock_set_connected(self, v) ((self)->connected = (v))
-#define        ssock_connected(self) ((self)->connected)
+#define        ssock_set_ss(self, v) ((self)->ss = (v))
+#define        ssock_ss(self) ((self)->ss)
 
 struct ssock * ssock_alloc(struct ssock_cb *cb);
 void           ssock_free(struct ssock *self);
@@ -40,7 +49,7 @@ int            ssock_poll(struct ssock *self, const char *buf, int size);
 int            ssock_send(struct ssock *self, const char *buf, int size);
 int            ssock_shutdown(struct ssock *self, int how);
 int            ssock_close(struct ssock *self);
-
+int            ssock_clear(struct ssock *self);
 
 /* ------------called been sssl ---------------------------------------------------------*/
 

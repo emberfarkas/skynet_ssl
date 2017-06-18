@@ -13,9 +13,17 @@ const char *gkey_close = "close";
 
 
 struct ssockaux {
-	lua_State *L;
+	lua_State    *L;
 	struct ssock *fd;
+	int           free;  // 0, 1: gc
 };
+
+static void
+ssockaux_free(struct ssockaux *self) {
+	ssock_free(self->fd);
+	free(self);
+	return 0;
+}
 
 /*
  * @breif 把所有数据都交出去，至于是否能接受，
@@ -61,13 +69,15 @@ ssockaux_write(const char *data, int dlen, void *ud) {
 
 static int
 ssockaux_shutdown(int how, void *ud) {
-	struct ssockaux *aux = ud;
-	lua_State *L = aux->L;
-	lua_getglobal(L, gkey);
-	lua_getfield(L, -1, "shutdown");
-	if (lua_isfunction(L, -1)) {
-		lua_pushinteger(L, how);
-		lua_pcall(L, 1, 0, 0);
+	if (0) {
+		struct ssockaux *aux = ud;
+		lua_State *L = aux->L;
+		lua_getglobal(L, gkey);
+		lua_getfield(L, -1, "shutdown");
+		if (lua_isfunction(L, -1)) {
+			lua_pushinteger(L, how);
+			lua_pcall(L, 1, 0, 0);
+		}
 	}
 	return 0;
 }
@@ -75,13 +85,19 @@ ssockaux_shutdown(int how, void *ud) {
 static int
 ssockaux_close(void *ud) {
 	struct ssockaux *aux = ud;
-	lua_State *L = aux->L;
-	lua_getglobal(L, gkey);
-	lua_getfield(L, -1, "close");
-	if (lua_isfunction(L, -1)) {
-		int status = lua_pcall(L, 0, 0, 0);
-		if (status == LUA_OK) {
+	if (ssock_ss(aux->fd) == ss_close) {
+	} else {
+		lua_State *L = aux->L;
+		lua_getglobal(L, gkey);
+		lua_getfield(L, -1, "close");
+		if (lua_isfunction(L, -1)) {
+			int status = lua_pcall(L, 0, 0, 0);
+			if (status == LUA_OK) {
+			}
 		}
+	}
+	if (aux->free) {
+		ssockaux_free(aux);
 	}
 	return 0;
 }
@@ -99,6 +115,7 @@ lssockaux_alloc(lua_State *L) {
 	cb.close_callback = ssockaux_close;
 	cb.ud = aux;
 	aux->fd = ssock_alloc(&cb);
+	aux->free = 0;
 
 	if (lua_gettop(L) >= 1) {
 		luaL_checktype(L, 1, LUA_TTABLE);
@@ -111,16 +128,9 @@ lssockaux_alloc(lua_State *L) {
 }
 
 static int
-lssockaux_free(lua_State *L) {
+lssockaux_ss(lua_State *L) {
 	struct ssockaux *aux = lua_touserdata(L, 1);
-	ssock_free(aux->fd);
-	return 0;
-}
-
-static int
-lssockaux_connected(lua_State *L) {
-	struct ssockaux *aux = lua_touserdata(L, 1);
-	int b = ssock_connected(aux->fd);
+	int b = ssock_ss(aux->fd);
 	lua_pushboolean(L, b);
 	return 1;
 }
@@ -210,6 +220,14 @@ lssockaux_shutdown(lua_State *L) {
 }
 
 static int
+lssockaux_close_gc(lua_State *L) {
+	struct ssockaux *aux = lua_touserdata(L, 1);
+	aux->free = 1;
+	ssock_close(aux->fd);
+	return 0;
+}
+
+static int
 lssockaux_close(lua_State *L) {
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	int r = ssock_close(aux->fd);
@@ -222,7 +240,7 @@ luaopen_ssock(lua_State *L) {
 	luaL_checkversion(L);
 	lua_createtable(L, 0, 1);
 	luaL_Reg l[] = {
-		{ "connected", lssockaux_connected },
+		{ "ss", lssockaux_ss },
 		{ "connect", lssockaux_connect },
 		{ "poll", lssockaux_poll },
 		{ "send", lssockaux_send },
@@ -232,7 +250,7 @@ luaopen_ssock(lua_State *L) {
 	};
 	luaL_newlib(L, l); // met
 	lua_setfield(L, -2, "__index");
-	lua_pushcfunction(L, lssockaux_free);
+	lua_pushcfunction(L, lssockaux_close_gc);
 	lua_setfield(L, -2, "__gc");
 
 	lua_pushcclosure(L, lssockaux_alloc, 1);
