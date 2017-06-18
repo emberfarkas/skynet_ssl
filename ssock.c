@@ -22,19 +22,16 @@
 #include <sys/select.h>
 #endif
 #endif // TEST_SOCK
-
-
-
-//struct ssock {
-//	int fd;
-//	struct sssl *sssl;
-//	recv_cb      cb;
-//	int        connected;  // 1: ok, 0:
-//};
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
+#include <assert.h>
 
 struct ssock *
-	ssock_alloc(recv_cb cb, void *ud) {
-
+ssock_alloc(struct ssock_cb *cb) {
+	assert(cb != NULL);
 #ifdef TEST_SOCK
 #if defined(_WIN32)
 	WSADATA wsaData;
@@ -52,12 +49,11 @@ struct ssock *
 		exit(0);
 	}
 	printf_s("创建套接字成功\r\n");
-	
+
 #endif // TEST_SOCK
 	inst->fd = fd;
-	inst->cb = cb;
-	inst->ud = ud;
-
+	inst->callback = *cb;
+	
 	inst->sssl = sssl_alloc(inst);
 	inst->connected = 0;
 	return inst;
@@ -73,7 +69,8 @@ ssock_free(struct ssock *self) {
 #endif
 }
 
-int            ssock_connect(struct ssock *self, char *addr, int port) {
+int            
+ssock_connect(struct ssock *self, const char *addr, int port) {
 #ifdef TEST_SOCK
 	struct sockaddr_in add;
 	add.sin_family = AF_INET;
@@ -109,27 +106,13 @@ ssock_update(struct ssock *self) {
 }
 
 int
-ssock_poll(struct ssock *self, char *buf, int size) {
+ssock_poll(struct ssock *self, const char *buf, int size) {
 	return sssl_poll(self->sssl, buf, size);
 }
 
 int
-ssock_send(struct ssock *self, char *buf, int size) {
+ssock_send(struct ssock *self, const char *buf, int size) {
 	return sssl_send(self->sssl, buf, size);
-}
-
-int
-ssock_write(struct ssock *self, const char *buf, int size) {
-	return ssockaux_write(self->ud, buf, size);
-	//return send(self->fd, buf, size, 0);
-}
-
-int
-ssock_data(struct ssock *self, const char *buf, int size) {
-	if (self->cb != NULL) {
-		self->cb(buf, size, self->ud);
-	}
-	return 1;
 }
 
 int
@@ -137,10 +120,9 @@ ssock_shutdown(struct ssock *self, int how) {
 #ifdef TEST_SOCK
 	return shutdown(self->fd, how);
 #else
-	return ssockaux_shutdown(self->ud, how);
+	// shutdown ssl
+	return sssl_shutdown(self->sssl, how);
 #endif // TEST_SOCK
-
-	
 }
 
 int
@@ -148,6 +130,32 @@ ssock_close(struct ssock *self) {
 #ifdef TEST_SOCK
 	return closesocket(self->fd);
 #else
-	return ssockaux_close(self->ud);
+	// close ssl
+	return sssl_close(self->sssl);
 #endif
+}
+
+int
+ssock_writex(struct ssock *self, const char *buf, int size) {
+#ifdef TEST_SOCK
+	return send(self->fd, buf, size, 0);
+#else
+	return self->callback.write_callback(buf, size, self->callback.ud);
+#endif // TEST_SOCK
+}
+
+int
+ssock_datax(struct ssock *self, const char *buf, int size) {
+	self->callback.data_callback(buf, size, self->callback.ud);
+	return 1;
+}
+
+int            
+ssock_shutdownx(struct ssock *self, int how) {
+	return self->callback.shutdown_callback(how, self->callback.ud);
+}
+
+int            
+ssock_closex(struct ssock *self) {
+	return self->callback.close_callback(self->callback.ud);
 }

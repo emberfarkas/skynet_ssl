@@ -1,6 +1,9 @@
 #include "sssl.h"
 #include "ssock.h"
 
+#include <assert.h>
+#include <string.h>
+
 struct sssl {
 	SSL_CTX   *ssl_ctx;
 	SSL       *ssl;
@@ -22,14 +25,14 @@ sssl_write_ssock(struct sssl *self) {
 	int nread = BIO_read(self->send_bio, buf, l);
 	while (nread > 0) {
 		b += nread;
-		int nwrite = ssock_write(self->fd, buf + e, b - e);
+		int nwrite = ssock_writex(self->fd, buf + e, b - e);
 		w += nwrite;
 		e += nwrite;
 
 		nread = BIO_read(self->send_bio, buf + b, l - b);
 	}
 	while (b != e) {
-		int nwrite = ssock_write(self->fd, buf + e, b - e);
+		int nwrite = ssock_writex(self->fd, buf + e, b - e);
 		w += nwrite;
 		e += nwrite;
 	}
@@ -48,17 +51,17 @@ sssl_read_data(struct sssl *self) {
 		b += nread;
 		r += nread;
 
-		ssock_data(self->fd, buf + e, b - e);
+		ssock_datax(self->fd, buf + e, b - e);
 		e += nread;
 
 		nread = SSL_read(self->ssl, buf + b, l - b);
 	}
-	
+
 	printf("接受socket数据 %d bytes\r\n", r);
 	return 1;
 }
 
-static int 
+static int
 sssl_handle_err(struct sssl *self, int code) {
 	if (code != 1) {
 		int err = SSL_get_error(self->ssl, code);
@@ -77,7 +80,7 @@ sssl_handle_err(struct sssl *self, int code) {
 }
 
 struct sssl *
-sssl_alloc(struct ssock *fd) {
+	sssl_alloc(struct ssock *fd) {
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 	SSL_load_error_strings();
@@ -135,10 +138,20 @@ sssl_connect(struct sssl *self) {
 
 int
 sssl_poll(struct sssl *self, const char *buf, int sz) {
-	BIO_write(self->recv_bio, buf, sz);
+	if (sz <= 0) {
+		return 0;
+	}
 
+	// 确保buf是正确的
+	assert(buf != NULL && sz > 0);
+	int nw = BIO_write(self->recv_bio, buf, sz);
+	while (nw < sz) {
+		nw = BIO_write(self->recv_bio, buf + nw, sz - nw);
+	}
+
+	// 判断hanshake是否完成
 	if (!SSL_is_init_finished(self->ssl)) {
-		self->connected = 0;
+		sssl_set_connected(self, 0);
 		int ret = SSL_do_handshake(self->ssl);
 		sssl_write_ssock(self);
 		if (ret != 1) {
@@ -176,8 +189,20 @@ sssl_send(struct sssl *self, const char *buf, int sz) {
 	return ret;
 }
 
-void         
+void
 sssl_set_connected(struct sssl *self, int v) {
-	self->connected = v;
-	ssock_set_connected(self->fd, v);
+	if (self->connected != v) {
+		self->connected = v;
+		ssock_set_connected(self->fd, v);
+	}
+}
+
+int          
+sssl_shutdown(struct sssl *self, int how) {
+	return ssock_shutdownx(self->fd, how);
+}
+
+int          
+sssl_close(struct sssl *self) {
+	return ssock_closex(self->fd);
 }
