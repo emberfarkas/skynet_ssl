@@ -230,7 +230,7 @@ sssl_shutdown(struct sssl *self, int how) {
 		ssock_closex(self->fd);
 		return 0;
 	}
-	self->state == SSSL_SHUTDOWN;
+	self->state = SSSL_SHUTDOWN;
 	if (how == 1) {
 		SSL_set_shutdown(self->ssl, SSL_SENT_SHUTDOWN);
 	} else if (how == 2) {
