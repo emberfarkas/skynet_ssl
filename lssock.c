@@ -22,7 +22,6 @@ static void
 ssockaux_free(struct ssockaux *self) {
 	ssock_free(self->fd);
 	free(self);
-	return 0;
 }
 
 /*
