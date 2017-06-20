@@ -169,7 +169,7 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 				return ret;
 			} else {
 				printf("openssl handshake success.\r\n");
-				sssl_set_state(self, 1);
+				sssl_set_state(self, SSSL_CONNECTED);
 				//sssl_read_bio(self);
 			}
 		} else {
