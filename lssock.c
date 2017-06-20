@@ -12,6 +12,7 @@ const char *gkey_shutdown = "shutdown";
 const char *gkey_close = "close";
 
 
+
 struct ssockaux {
 	lua_State    *L;
 	struct ssock *fd;
@@ -129,8 +130,8 @@ lssockaux_alloc(lua_State *L) {
 static int
 lssockaux_ss(lua_State *L) {
 	struct ssockaux *aux = lua_touserdata(L, 1);
-	int b = ssock_ss(aux->fd);
-	lua_pushboolean(L, b);
+	int s = ssock_ss(aux->fd);
+	lua_pushinteger(L, s);
 	return 1;
 }
 
@@ -139,16 +140,7 @@ lssockaux_connect(lua_State *L) {
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	const char *addr = luaL_checkstring(L, 2);
 	int port = luaL_checkinteger(L, 3);
-	printf("%s:%d\n", addr, port);
 	int r = ssock_connect(aux->fd, addr, port);
-	lua_pushinteger(L, r);
-	return 1;
-}
-
-static int
-lssockaux_update(lua_State *L) {
-	struct ssockaux *aux = lua_touserdata(L, 1);
-	int r = ssock_update(aux->fd);
 	lua_pushinteger(L, r);
 	return 1;
 }
@@ -202,17 +194,6 @@ static int
 lssockaux_shutdown(lua_State *L) {
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	int how = luaL_checkinteger(L, 2);
-	if (lua_gettop(L) > 2) {
-		luaL_checktype(L, 3, LUA_TFUNCTION);
-		lua_getglobal(L, gkey);
-		if (lua_istable(L, -1)) {
-		} else {
-			lua_newtable(L);
-			lua_setglobal(L, gkey);
-		}
-		lua_pushvalue(L, 3);
-		lua_setfield(L, -2, gkey_shutdown);
-	}
 	int r = ssock_shutdown(aux->fd, how);
 	lua_pushinteger(L, r);
 	return 1;
