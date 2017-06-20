@@ -7,9 +7,9 @@
 #define SSSL_NORMAL     0
 #define SSSL_CONNECT    1
 #define SSSL_CONNECTING 2
-#define SSSL_CONNECTED  2
-#define SSSL_SHUTDOWN   3
-#define SSSL_CLOSE      4
+#define SSSL_CONNECTED  3
+#define SSSL_SHUTDOWN   4
+#define SSSL_CLOSE      5
 
 struct sssl {
 	SSL_CTX   *ssl_ctx;
