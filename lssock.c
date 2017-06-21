@@ -36,8 +36,9 @@ ssockaux_data(const char *data, int dlen, void *ud) {
 	lua_getfield(L, -1, gkey_data);
 	if (lua_isfunction(L, -1)) {
 		lua_pushvalue(L, -2);
-		lua_rawgetp(L, -2, aux);
+		lua_rawgetp(L, -1, aux);
 		lua_pop(L, 1);
+
 		lua_pushlstring(L, data, dlen);
 		int status = lua_pcall(L, 2, 0, 0);
 		if (status == LUA_OK) {  // 当前线程OK
@@ -85,6 +86,7 @@ ssockaux_shutdown(int how, void *ud) {
 			lua_pushvalue(L, -2);
 			lua_rawgetp(L, -1, aux);
 			lua_pop(L, 1);
+
 			lua_pushinteger(L, how);
 			lua_pcall(L, 1, 0, 0);
 		}
@@ -104,6 +106,7 @@ ssockaux_close(void *ud) {
 			lua_pushvalue(L, -2);
 			lua_rawgetp(L, -1, aux);
 			lua_pop(L, 1);
+
 			int status = lua_pcall(L, 0, 0, 0);
 			if (status == LUA_OK) {
 			}
@@ -122,10 +125,10 @@ lssockaux_alloc(lua_State *L) {
 	aux->L = L;
 
 	struct ssock_cb cb;
-	cb.write_callback = ssockaux_write;
-	cb.data_callback = ssockaux_data;
+	cb.write_callback    = ssockaux_write;
+	cb.data_callback     = ssockaux_data;
 	cb.shutdown_callback = ssockaux_shutdown;
-	cb.close_callback = ssockaux_close;
+	cb.close_callback    = ssockaux_close;
 	cb.ud = aux;
 	aux->fd = ssock_alloc(&cb);
 	aux->free = 0;
@@ -133,7 +136,7 @@ lssockaux_alloc(lua_State *L) {
 	if (lua_gettop(L) >= 1) {
 		luaL_checktype(L, 1, LUA_TTABLE);
 		lua_pushvalue(L, 1);
-		lua_pushvalue(L, -1);
+		lua_pushvalue(L, -2);
 		lua_rawsetp(L, -2, aux);
 		lua_setglobal(L, gkey);
 	}
