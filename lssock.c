@@ -122,6 +122,10 @@ ssockaux_close(void *ud) {
 	return 0;
 }
 
+/*
+** @breif alloc aux
+*/
+
 static int
 lssockaux_alloc(lua_State *L) {
 
@@ -139,18 +143,19 @@ lssockaux_alloc(lua_State *L) {
 
 	if (lua_gettop(L) >= 1) {
 		luaL_checktype(L, 1, LUA_TTABLE);
+		lua_pushvalue(L, -1);
+		lua_rawsetp(L, 1, aux);
 		lua_pushvalue(L, 1);
-		lua_pushvalue(L, -2);
-		lua_rawsetp(L, -2, aux);
 		lua_setglobal(L, gkey);
 	}
 	lua_pushvalue(L, lua_upvalueindex(1));
-	lua_setmetatable(L, -2);
+	lua_setmetatable(L, -1);
 	return 1;
 }
 
 static int
 lssockaux_ss(lua_State *L) {
+	luaL_checktype(L, 1, LUA_TUSERDATA);
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	int s = ssock_ss(aux->fd);
 	lua_pushinteger(L, s);
@@ -159,6 +164,7 @@ lssockaux_ss(lua_State *L) {
 
 static int
 lssockaux_connect(lua_State *L) {
+	luaL_checktype(L, 1, LUA_TUSERDATA);
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	const char *addr = luaL_checkstring(L, 2);
 	int port = luaL_checkinteger(L, 3);
@@ -169,19 +175,10 @@ lssockaux_connect(lua_State *L) {
 
 static int
 lssockaux_poll(lua_State *L) {
+	luaL_checktype(L, 1, LUA_TUSERDATA);
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	size_t l = 0;
 	const char *buf = luaL_checklstring(L, 2, &l);
-	if (lua_isfunction(L, 3)) {
-		lua_getglobal(L, gkey);
-		if (!lua_istable(L, -1)) {
-			lua_createtable(L, 0, 4);
-			lua_setglobal(L, gkey);
-		}
-		lua_pushvalue(L, 3);
-		lua_setfield(L, -2, gkey_data);
-		lua_pop(L, 1);   // »¹Ô­
-	}
 	if (l > 0) {
 		int r = ssock_poll(aux->fd, buf, l);
 		lua_pushinteger(L, r);
@@ -193,27 +190,22 @@ lssockaux_poll(lua_State *L) {
 
 static int
 lssockaux_send(lua_State *L) {
+	luaL_checktype(L, 1, LUA_TUSERDATA);
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	size_t l = 0;
 	const char *buf = luaL_checklstring(L, 2, &l);
-	if (lua_gettop(L) > 2) {
-		luaL_checktype(L, 3, LUA_TFUNCTION);
-		lua_getglobal(L, gkey);
-		if (lua_istable(L, -1)) {
-		} else {
-			lua_newtable(L);
-			lua_setglobal(L, gkey);
-		}
-		lua_pushvalue(L, 3);
-		lua_setfield(L, -2, "write");
+	if (l > 0) {
+		int r = ssock_send(aux->fd, buf, l);
+		lua_pushinteger(L, r);
+	} else {
+		lua_pushinteger(L, 0);
 	}
-	int r = ssock_send(aux->fd, buf, l);
-	lua_pushinteger(L, r);
 	return 1;
 }
 
 static int
 lssockaux_shutdown(lua_State *L) {
+	luaL_checktype(L, 1, LUA_TUSERDATA);
 	struct ssockaux *aux = lua_touserdata(L, 1);
 	int how = luaL_checkinteger(L, 2);
 	int r = ssock_shutdown(aux->fd, how);
