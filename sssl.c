@@ -155,7 +155,8 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 
 	int nw = BIO_write(self->recv_bio, buf, sz);
 	while (nw < sz) {
-		nw = BIO_write(self->recv_bio, buf + nw, sz - nw);
+		sz -= nw;
+		nw = BIO_write(self->recv_bio, buf + nw, sz);
 	}
 
 	if (SSSL_CONNECT <= self->state && self->state <= SSSL_CONNECTED) {
