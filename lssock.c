@@ -12,7 +12,6 @@ const char *gkey_shutdown = "shutdown";
 const char *gkey_close = "close";
 
 
-
 struct ssockaux {
 	lua_State    *L;
 	struct ssock *fd;
@@ -36,7 +35,8 @@ ssockaux_data(const char *data, int dlen, void *ud) {
 	lua_getfield(L, -1, gkey_data);
 	if (lua_isfunction(L, -1)) {
 		lua_pushvalue(L, -2);
-		lua_rawgetp(L, -1, aux);
+		assert(lua_rawgetp(L, -1, aux) == LUA_TUSERDATA);
+		lua_rotate(L, -2, 2);
 		lua_pop(L, 1);
 
 		lua_pushlstring(L, data, dlen);
@@ -59,19 +59,21 @@ ssockaux_write(const char *data, int dlen, void *ud) {
 	assert(dlen > 0 && data != NULL);
 	lua_getglobal(L, gkey);
 	luaL_checktype(L, -1, LUA_TTABLE);
-	lua_getfield(L, -1, "write");
-	if (lua_isfunction(L, -1)) {
+	if (lua_getfield(L, -1, "write") == LUA_TFUNCTION) {
 		lua_pushvalue(L, -2);
-		lua_rawgetp(L, -1, aux);
+		assert(lua_rawgetp(L, -1, aux) == LUA_TUSERDATA);
+		lua_rotate(L, -2, 2);
 		lua_pop(L, 1);
 
 		lua_pushlstring(L, data, dlen);
+
 		int status = lua_pcall(L, 1, 1, 0);
 		if (status == LUA_OK) {
 			int r = (int)luaL_checknumber(L, -1);
 			return r;
 		}
-	}
+	};
+
 	return 0;
 }
 
@@ -84,7 +86,8 @@ ssockaux_shutdown(int how, void *ud) {
 		lua_getfield(L, -1, "shutdown");
 		if (lua_isfunction(L, -1)) {
 			lua_pushvalue(L, -2);
-			lua_rawgetp(L, -1, aux);
+			assert(lua_rawgetp(L, -1, aux) == LUA_TUSERDATA);
+			lua_rotate(L, -2, 2);
 			lua_pop(L, 1);
 
 			lua_pushinteger(L, how);
@@ -104,7 +107,8 @@ ssockaux_close(void *ud) {
 		lua_getfield(L, -1, "close");
 		if (lua_isfunction(L, -1)) {
 			lua_pushvalue(L, -2);
-			lua_rawgetp(L, -1, aux);
+			assert(lua_rawgetp(L, -1, aux) == LUA_TUSERDATA);
+			lua_rotate(L, -2, 2);
 			lua_pop(L, 1);
 
 			int status = lua_pcall(L, 0, 0, 0);
