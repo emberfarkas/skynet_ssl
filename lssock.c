@@ -29,8 +29,13 @@ ssockaux_free(struct ssockaux *self) {
 */
 static void
 ssockaux_data(const char *data, int dlen, void *ud) {
+	assert(ud != NULL);
 	struct ssockaux *aux = ud;
 	lua_State *L = aux->L;
+	if (dlen <= 0) {
+		return;
+	}
+	assert(data != NULL && dlen > 0);
 	lua_getglobal(L, gkey);
 	lua_getfield(L, -1, gkey_data);
 	if (lua_isfunction(L, -1)) {
