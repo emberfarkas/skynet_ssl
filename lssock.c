@@ -150,7 +150,7 @@ lssockaux_alloc(lua_State *L) {
 		lua_setglobal(L, gkey);
 
 		lua_pushvalue(L, lua_upvalueindex(1));
-		lua_setmetatable(L, -1);
+		lua_setmetatable(L, -2);
 
 		return 1;
 	} else {
