@@ -255,5 +255,5 @@ sssl_close(struct sssl *self) {
 
 int
 sssl_clear(struct sssl *self) {
-	SSL_clear(self->ssl);
+	return SSL_clear(self->ssl);
 }

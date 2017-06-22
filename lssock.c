@@ -128,29 +128,35 @@ ssockaux_close(void *ud) {
 
 static int
 lssockaux_alloc(lua_State *L) {
-
-	struct ssockaux *aux = lua_newuserdata(L, sizeof(struct ssockaux));
-	aux->L = L;
-
-	struct ssock_cb cb;
-	cb.write_callback    = ssockaux_write;
-	cb.data_callback     = ssockaux_data;
-	cb.shutdown_callback = ssockaux_shutdown;
-	cb.close_callback    = ssockaux_close;
-	cb.ud = aux;
-	aux->fd = ssock_alloc(&cb);
-	aux->free = 0;
-
 	if (lua_gettop(L) >= 1) {
 		luaL_checktype(L, 1, LUA_TTABLE);
+
+		struct ssockaux *aux = lua_newuserdata(L, sizeof(struct ssockaux));
+		aux->L = L;
+
+		struct ssock_cb cb;
+		cb.write_callback    = ssockaux_write;
+		cb.data_callback     = ssockaux_data;
+		cb.shutdown_callback = ssockaux_shutdown;
+		cb.close_callback    = ssockaux_close;
+		cb.ud = aux;
+		aux->fd = ssock_alloc(&cb);
+		aux->free = 0;
+
 		lua_pushvalue(L, -1);
 		lua_rawsetp(L, 1, aux);
+
 		lua_pushvalue(L, 1);
 		lua_setglobal(L, gkey);
+
+		lua_pushvalue(L, lua_upvalueindex(1));
+		lua_setmetatable(L, -1);
+
+		return 1;
+	} else {
+		luaL_error(L, "please give a table contains callback.");
+		return 0;
 	}
-	lua_pushvalue(L, lua_upvalueindex(1));
-	lua_setmetatable(L, -1);
-	return 1;
 }
 
 static int
@@ -229,6 +235,11 @@ lssockaux_close(lua_State *L) {
 	return 1;
 }
 
+static int
+lssockaux_clear(lua_State *L) {
+	return 0;
+}
+
 LUAMOD_API int
 luaopen_ssock(lua_State *L) {
 	luaL_checkversion(L);
@@ -240,6 +251,7 @@ luaopen_ssock(lua_State *L) {
 		{ "send", lssockaux_send },
 		{ "shutdown", lssockaux_shutdown },
 		{ "close", lssockaux_close },
+		{ "clear", lssockaux_clear },
 		{ NULL, NULL },
 	};
 	luaL_newlib(L, l); // met
