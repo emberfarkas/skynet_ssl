@@ -151,6 +151,7 @@ sssl_connect(struct sssl *self) {
 	} else {
 		sssl_handle_err(self, ret, "SSL_connect.");
 	}
+	sssl_write_ssock(self);
 	return ret;
 }
 
