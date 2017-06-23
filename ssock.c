@@ -138,7 +138,7 @@ ssock_close(struct ssock *self) {
 
 int            
 ssock_clear(struct ssock *self) {
-	sssl_clear(self->sssl);
+	return sssl_clear(self->sssl);
 }
 
 int

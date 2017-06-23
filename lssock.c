@@ -149,7 +149,7 @@ lssockaux_alloc(lua_State *L) {
 		aux->free = 0;
 
 		lua_pushvalue(L, -1);
-		lua_rawsetp(L, 1, aux);
+		lua_rawsetp(L, 1, aux);  // 
 
 		lua_pushvalue(L, 1);
 		lua_setglobal(L, gkey);

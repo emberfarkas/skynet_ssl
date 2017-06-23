@@ -12,6 +12,7 @@ typedef enum ssock_state {
 	ss_connected,
 	ss_shutdown,
 	ss_close,
+	ss_error,
 } ssock_state;
 
 typedef void (*data_cb)(const char *data, int dlen, void *ud);
