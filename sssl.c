@@ -165,7 +165,7 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 		if (!SSL_is_init_finished(self->ssl)) {
 			sssl_set_state(self, SSSL_CONNECTING);
 			int ret = SSL_do_handshake(self->ssl);
-			sssl_write_ssock(self);
+			/*sssl_write_ssock(self);*/
 			if (ret != 1) {
 				sssl_handle_err(self, ret);
 				return ret;
