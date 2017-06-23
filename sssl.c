@@ -24,6 +24,29 @@ struct sssl {
 };
 
 /*
+** @breif 只管处理错误
+*/
+static int
+sssl_handle_err(struct sssl *self, int code, const char *tips) {
+	assert(self != NULL && tips != NULL);
+	int err = SSL_get_error(self->ssl, code);
+	if (err == SSL_ERROR_SSL) {
+		printf("SSL_ERROR_SSL : %s\r\n", tips);
+	} else if (err == SSL_ERROR_WANT_READ) {
+		// waitting for poll buf.
+		printf("SSL_ERROR_WANT_READ : %s\r\n", tips);
+	} else if (err == SSL_ERROR_WANT_WRITE) {
+		printf("SSL_ERROR_WANT_WRITE : %s\r\n", tips);
+		sssl_write_ssock(self);
+	} else if (err == SSL_ERROR_WANT_CONNECT) {
+		printf("SSL_ERROR_WANT_WRITE");
+	} else {
+		printf("DEFAULT ERROR : %d", err);
+	}
+	return err;
+}
+
+/*
 ** @breif 只管把所有数据都推向出去
 ** @return 获取的数据的size
 */
@@ -69,29 +92,6 @@ sssl_read_data(struct sssl *self) {
 
 	printf("接受socket数据 %d bytes\r\n", r);
 	return r;
-}
-
-/*
-** @breif 只管处理错误
-*/
-static int
-sssl_handle_err(struct sssl *self, int code, const char *tips) {
-	assert(self != NULL && tips != NULL);
-	int err = SSL_get_error(self->ssl, code);
-	if (err == SSL_ERROR_SSL) {
-		printf("SSL_ERROR_SSL : %s\r\n", tips);
-	}else if (err == SSL_ERROR_WANT_READ) {
-		// waitting for poll buf.
-		printf("SSL_ERROR_WANT_READ : %s\r\n", tips);
-	} else if (err == SSL_ERROR_WANT_WRITE) {
-		printf("SSL_ERROR_WANT_WRITE : %s\r\n", tips);
-		sssl_write_ssock(self);
-	} else if (err == SSL_ERROR_WANT_CONNECT) {
-		printf("SSL_ERROR_WANT_WRITE");
-	} else  {
-		printf("DEFAULT ERROR : %d", err);
-	}
-	return err;
 }
 
 struct sssl *
