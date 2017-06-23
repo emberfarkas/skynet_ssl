@@ -38,12 +38,12 @@ sssl_write_ssock(struct sssl *self) {
 
 		nread = BIO_read(self->send_bio, buf + b, l - b);
 	}
-	while (b != e) {
+	while (b > e) {
 		int nwrite = ssock_writex(self->fd, buf + e, b - e);
 		w += nwrite;
 		e += nwrite;
 	}
-	return nread;
+	return w;
 }
 
 static int
@@ -61,11 +61,12 @@ sssl_read_data(struct sssl *self) {
 		ssock_datax(self->fd, buf + e, b - e);
 		e += nread;
 
+		assert(b == e);
 		nread = SSL_read(self->ssl, buf + b, l - b);
 	}
 
 	printf("接受socket数据 %d bytes\r\n", r);
-	return 1;
+	return r;
 }
 
 static int
