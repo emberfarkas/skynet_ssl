@@ -153,7 +153,7 @@ ssock_writex(struct ssock *self, const char *buf, int size) {
 int
 ssock_datax(struct ssock *self, const char *buf, int size) {
 	self->callback.data_callback(buf, size, self->callback.ud);
-	return 1;
+	return size;
 }
 
 int            
