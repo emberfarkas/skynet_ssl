@@ -90,9 +90,11 @@ sssl_handle_err(struct sssl *self, int code, const char *tips) {
 		printf("SSL_ERROR_WANT_WRITE : %s\r\n", tips);
 		sssl_write_ssock(self);
 	} else if (err == SSL_ERROR_WANT_CONNECT) {
-		printf("SSL_ERROR_WANT_WRITE");
+		printf("SSL_ERROR_WANT_WRITE : %s\r\n", tips);
+	} else if (err == SSL_ERROR_SYSCALL) {
+		printf("SSL_ERROR_SYSCALL : %s\r\n", tips);
 	} else {
-		printf("DEFAULT ERROR : %d", err);
+		printf("DEFAULT ERROR : %d\r\n", err);
 	}
 	return err;
 }
