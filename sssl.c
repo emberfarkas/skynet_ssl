@@ -37,7 +37,7 @@ sssl_write_ssock(struct sssl *self) {
 	char buf[4096] = { 0 };
 	int nread = BIO_read(self->send_bio, buf, l);
 	if (nread <= 0) {
-		sssl_handle_err(self, nread, "BIO_read error.");
+		sssl_handle_err(self, nread, "sssl write ssock, BIO_read error.");
 	}
 	while (nread > 0) {
 		ssock_writex(self->fd, buf + w, nread);
@@ -45,7 +45,7 @@ sssl_write_ssock(struct sssl *self) {
 
 		nread = BIO_read(self->send_bio, buf + w, l - w);
 		if (nread <= 0) {
-			sssl_handle_err(self, nread, "BIO_read error.");
+			sssl_handle_err(self, nread, "sssl write ssock. BIO_read error.");
 		}
 	}
 	return w;
@@ -59,6 +59,9 @@ sssl_read_data(struct sssl *self) {
 	int l = 4096;
 	char buf[4096] = { 0 };
 	int nread = SSL_read(self->ssl, buf, l);
+	if (nread <= 0) {
+		sssl_handle_err(self, nread, "sssl read data, BIO_read error.");
+	}
 	while (nread > 0) {
 		b += nread;
 		r += nread;
@@ -68,6 +71,9 @@ sssl_read_data(struct sssl *self) {
 
 		assert(b == e);
 		nread = SSL_read(self->ssl, buf + b, l - b);
+		if (nread <= 0) {
+			sssl_handle_err(self, nread, "sssl read data, BIO_read error.");
+		}
 	}
 
 	printf("接受socket数据 %d bytes\r\n", r);
@@ -183,12 +189,11 @@ sssl_poll(struct sssl *self, const char *buf, int sz) {
 			sssl_set_state(self, SSSL_CONNECTING);
 			int ret = SSL_do_handshake(self->ssl);
 			sssl_write_ssock(self);
-			if (ret != 1) {
-				sssl_handle_err(self, ret, "SSL_do_hanshake.");
-			} else {
+			if (ret == 1) {
 				printf("openssl handshake success.\r\n");
 				sssl_set_state(self, SSSL_CONNECTED);
-				//sssl_read_bio(self);
+			} else {
+				sssl_handle_err(self, ret, "SSL_do_hanshake.");
 			}
 			return ret;
 		} else {
